@@ -1,70 +1,108 @@
-// resolvers.ts
-import User, { UserDocument } from '../models/User';
-import bookSchema, { BookDocument } from '../models/Book';
-
-
+import User from '../models/User.js';
+import { BookDocument } from '../models/Book.js';
+import { signToken } from '../services/auth.js'; 
+import { JwtPayload }  from '../services/auth.js';
 
 const resolvers = {
-    Query: {
-        me: async (_parent: any, context: any) => {
-            if (context.user) {
-                const userData = await User.findOne({ _id: context.user._id })
-                    .select('-__v -password')
-                    .populate('books');
+  Query: {
+    me: async (_parent: unknown, _args: unknown, context: { user: JwtPayload }) => {
+      const { user } = context;
 
-                return userData;
-            }
+      if (!user) {
+        throw new Error('Authentication required');
+      }
 
-            throw new Error('Not logged in');
-        },
+      const foundUser = await User.findById(user._id).populate('savedBooks');
+      if (!foundUser) {
+        throw new Error('User not found');
+      }
+
+      return foundUser;
     },
-    Mutation: {
-        login: async (_parent: any, { email, password }: any) => {
-            const user = await User.findOne({ email });
+  },
 
-            if (!user) {
-                throw new Error('Incorrect credentials');
-            }
+  Mutation: {
+    login: async (
+      _parent: unknown,
+      { email, password }: { email: string; password: string }
+    ) => {
+      const user = await User.findOne({ email });
 
-            const correctPw = await user.isCorrectPassword(password);
+      if (!user) {
+        throw new Error('Incorrect credentials');
+      }
 
-            if (!correctPw) {
-                throw new Error('Incorrect credentials');
-            }
+      const validPassword = await user.isCorrectPassword(password);
+      if (!validPassword) {
+        throw new Error('Incorrect credentials');
+      }
 
-            return user;
-        },
-        addUser: async (_parent: any, args: any) => {
-            const user = await User.create(args);
-            const token = signToken(user);
+      // Generate JWT token on successful login
+      const token = signToken(user.username, user.email, user._id);
 
-            return { token, user };
-        },
-        saveBook: async (_parent: any, { bookData }: any, context: any) => {
-            if (context.user) {
-                const updatedUser = await User.findByIdAndUpdate(
-                    { _id: context.user._id },
-                    { $addToSet: { savedBooks: bookData } },
-                    { new: true }
-                );
-
-                return updatedUser;
-            }
-
-            throw new Error('You need to be logged in!');
-        },
-        removeBook: async (_parent: any, { bookId }: any, context: any) => {
-            if (context.user) {
-                const updatedUser = await User.findOneAndUpdate(
-                    { _id: context.user._id },
-                    { $pull: { savedBooks: { bookId } } },
-                    { new: true }
-                );
-
-                return updatedUser;
-            }
-
-            throw new Error('You need to be logged in!');
-        },
+      return { user, token };
     },
+
+    addUser: async (
+      _parent: unknown,
+      { username, email, password }: { username: string; email: string; password: string }
+    ) => {
+      const user = await User.create({ username, email, password });
+
+      // Generate JWT token for new user
+      const token = signToken(user.username, user.email, user._id);
+
+      return { user, token };
+    },
+
+    saveBook: async (
+      _parent: unknown,
+      { bookData }: { bookData: BookDocument },
+      context: { user: JwtPayload }
+    ) => {
+      const { user } = context;
+
+      if (!user) {
+        throw new Error('Authentication required');
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        { $addToSet: { savedBooks: bookData } }, // Add to savedBooks without duplicates
+        { new: true, runValidators: true }
+      ).populate('savedBooks');
+
+      if (!updatedUser) {
+        throw new Error('User not found');
+      }
+
+      return updatedUser;
+    },
+
+    removeBook: async (
+      _parent: unknown,
+      { bookId }: { bookId: string },
+      context: { user: JwtPayload }
+    ) => {
+      const { user } = context;
+
+      if (!user) {
+        throw new Error('Authentication required');
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        { $pull: { savedBooks: { bookId } } }, // Remove book matching bookId
+        { new: true }
+      ).populate('savedBooks');
+
+      if (!updatedUser) {
+        throw new Error('User not found');
+      }
+
+      return updatedUser;
+    },
+  },
 };
+
+export default resolvers;
