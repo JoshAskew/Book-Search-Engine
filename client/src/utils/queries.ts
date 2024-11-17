@@ -5,7 +5,13 @@ export const QUERY_PROFILES = gql`
     profiles {
       _id
       name
-      skills
+      email
+      savedBooks {
+        bookId
+        title
+        authors
+        description
+      }
     }
   }
 `;
@@ -15,7 +21,13 @@ export const QUERY_SINGLE_PROFILE = gql`
     profile(profileId: $profileId) {
       _id
       name
-      skills
+      email
+      savedBooks {
+        bookId
+        title
+        authors
+        description
+      }
     }
   }
 `;
@@ -25,7 +37,35 @@ export const QUERY_ME = gql`
     me {
       _id
       name
-      skills
+      email
+      savedBooks {
+        bookId
+        title
+        authors
+        description
+      }
+    }
+  }
+`;
+
+export const SEARCH_BOOKS = gql`
+  query searchBooks($title: String!) {
+    searchBooks(title: $title) {
+      bookId
+      title
+      authors
+      description
+    }
+  }
+`;
+
+export const QUERY_ALL_BOOKS = gql`
+  query allBooks {
+    books {
+      bookId
+      title
+      authors
+      description
     }
   }
 `;
