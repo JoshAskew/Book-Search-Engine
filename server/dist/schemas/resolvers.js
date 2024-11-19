@@ -3,11 +3,11 @@ import { signToken } from '../services/auth.js';
 const resolvers = {
     Query: {
         me: async (_parent, _args, context) => {
-            const { user } = context;
-            if (!user) {
+            console.log('Context', context.user);
+            if (!context.user) {
                 throw new Error('Authentication required');
             }
-            const foundUser = await User.findById(user._id).populate('savedBooks');
+            const foundUser = await User.findById(context.user._id).populate('savedBooks');
             if (!foundUser) {
                 throw new Error('User not found');
             }
@@ -35,11 +35,10 @@ const resolvers = {
             return { user, token };
         },
         saveBook: async (_parent, { bookData }, context) => {
-            const { user } = context;
-            if (!user) {
+            if (!context.user) {
                 throw new Error('Authentication required');
             }
-            const updatedUser = await User.findByIdAndUpdate(user._id, { $addToSet: { savedBooks: bookData } }, // Add to savedBooks without duplicates
+            const updatedUser = await User.findByIdAndUpdate(context.user._id, { $addToSet: { savedBooks: bookData } }, // Add to savedBooks without duplicates
             { new: true, runValidators: true }).populate('savedBooks');
             if (!updatedUser) {
                 throw new Error('User not found');
@@ -47,11 +46,10 @@ const resolvers = {
             return updatedUser;
         },
         removeBook: async (_parent, { bookId }, context) => {
-            const { user } = context;
-            if (!user) {
+            if (!context.user) {
                 throw new Error('Authentication required');
             }
-            const updatedUser = await User.findByIdAndUpdate(user._id, { $pull: { savedBooks: { bookId } } }, // Remove book matching bookId
+            const updatedUser = await User.findByIdAndUpdate(context.user._id, { $pull: { savedBooks: { bookId } } }, // Remove book matching bookId
             { new: true }).populate('savedBooks');
             if (!updatedUser) {
                 throw new Error('User not found');

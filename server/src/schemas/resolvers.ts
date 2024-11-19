@@ -1,18 +1,23 @@
 import User from '../models/User.js';
 import { BookDocument } from '../models/Book.js';
-import { signToken } from '../services/auth.js'; 
-import { JwtPayload }  from '../services/auth.js';
+import { signToken } from '../services/auth.js';
+
+interface ContextUser {
+  _id: string;
+  email: string;
+  username: string;
+}
 
 const resolvers = {
   Query: {
-    me: async (_parent: unknown, _args: unknown, context: { user: JwtPayload }) => {
-      const { user } = context;
+    me: async (_parent: unknown, _args: unknown, context: { user: ContextUser }) => {
+      console.log('Context', context.user);
 
-      if (!user) {
+      if (!context.user) {
         throw new Error('Authentication required');
       }
 
-      const foundUser = await User.findById(user._id).populate('savedBooks');
+      const foundUser = await User.findById(context.user._id).populate('savedBooks');
       if (!foundUser) {
         throw new Error('User not found');
       }
@@ -58,16 +63,14 @@ const resolvers = {
     saveBook: async (
       _parent: unknown,
       { bookData }: { bookData: BookDocument },
-      context: { user: JwtPayload }
+      context: { user: ContextUser }
     ) => {
-      const { user } = context;
-
-      if (!user) {
+      if (!context.user) {
         throw new Error('Authentication required');
       }
 
       const updatedUser = await User.findByIdAndUpdate(
-        user._id,
+        context.user._id,
         { $addToSet: { savedBooks: bookData } }, // Add to savedBooks without duplicates
         { new: true, runValidators: true }
       ).populate('savedBooks');
@@ -82,16 +85,14 @@ const resolvers = {
     removeBook: async (
       _parent: unknown,
       { bookId }: { bookId: string },
-      context: { user: JwtPayload }
+      context: { user: ContextUser }
     ) => {
-      const { user } = context;
-
-      if (!user) {
+      if (!context.user) {
         throw new Error('Authentication required');
       }
 
       const updatedUser = await User.findByIdAndUpdate(
-        user._id,
+        context.user._id,
         { $pull: { savedBooks: { bookId } } }, // Remove book matching bookId
         { new: true }
       ).populate('savedBooks');
