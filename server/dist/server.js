@@ -7,6 +7,7 @@ import { typeDefs, resolvers } from './schemas/index.js';
 import db from './config/connection.js';
 const PORT = process.env.PORT || 3001;
 const app = express();
+const __dirname = path.dirname(__filename);
 const server = new ApolloServer({
     typeDefs,
     resolvers,
