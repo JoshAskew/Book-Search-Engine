@@ -8,6 +8,11 @@ interface ContextUser {
   username: string;
 }
 
+interface LoginUserArgs {
+  email: string;
+  password: string;
+}
+
 const resolvers = {
   Query: {
     me: async (_parent: unknown, _args: unknown, context: { user: ContextUser }) => {
@@ -27,25 +32,22 @@ const resolvers = {
   },
 
   Mutation: {
-    login: async (
-      _parent: unknown,
-      { email, password }: { email: string; password: string }
-    ) => {
+    login: async (_parent: any, { email, password }: LoginUserArgs) => {
       const user = await User.findOne({ email });
 
       if (!user) {
-        throw new Error('Incorrect credentials');
+        throw new Error('Could not authenticate user.');
       }
 
-      const validPassword = await user.isCorrectPassword(password);
-      if (!validPassword) {
-        throw new Error('Incorrect credentials');
+      const correctPw = await user.isCorrectPassword(password);
+
+      if (!correctPw) {
+        throw new Error('Wrong credentials.');
       }
 
-      // Generate JWT token on successful login
       const token = signToken(user.username, user.email, user._id);
 
-      return { user, token };
+      return { token, user };
     },
 
     addUser: async (

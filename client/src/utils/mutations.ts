@@ -50,12 +50,12 @@ export const REMOVE_BOOK = gql`
 
 // Mutation for user login (you may already have this, but adjusted for books)
 export const LOGIN_USER = gql`
-  mutation Mutation($email: String!, $password: String!) {
-  login(email: $email, password: $password) {
-    user {
-      username
+  mutation login($email: String!, $password: String!) {
+    login(email: $email, password: $password) {
+      user {
+        username
+      }
+      token
     }
-    token
   }
-}
 `;
