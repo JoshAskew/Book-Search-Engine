@@ -7,6 +7,7 @@ export const QUERY_PROFILES = gql`
       username
       email
       savedBooks {
+        image
         bookId
         title
         authors
@@ -23,6 +24,7 @@ export const QUERY_SINGLE_PROFILE = gql`
       username
       email
       savedBooks {
+        image
         bookId
         title
         authors
